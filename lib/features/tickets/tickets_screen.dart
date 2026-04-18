@@ -27,7 +27,6 @@ class TicketsScreen extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('bookings')
           .where('userId', isEqualTo: user.uid)
-          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -37,10 +36,10 @@ class TicketsScreen extends StatelessWidget {
         }
 
         if (snapshot.hasError) {
-          return const Center(
+          return Center(
             child: Text(
-              'Failed to load tickets',
-              style: TextStyle(color: Colors.white),
+              'Failed to load tickets: ${snapshot.error}',
+              style: const TextStyle(color: Colors.white),
             ),
           );
         }

@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import '../../models/event_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import '../../models/event_model.dart';
 
 class BookingScreen extends StatefulWidget {
   final EventModel event;
@@ -17,10 +17,63 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   int quantity = 1;
+  bool _isLoading = false;
 
   int _extractPrice(String priceText) {
     final numeric = priceText.replaceAll(RegExp(r'[^0-9]'), '');
     return int.tryParse(numeric) ?? 0;
+  }
+
+  Future<void> _confirmBooking() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not logged in')),
+      );
+      return;
+    }
+
+    final int unitPrice = _extractPrice(widget.event.price);
+    final int totalPrice = unitPrice * quantity;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await FirebaseFirestore.instance.collection('bookings').add({
+        'userId': user.uid,
+        'eventTitle': widget.event.title,
+        'date': widget.event.date,
+        'location': widget.event.location,
+        'ticketType': 'General Entry',
+        'status': 'Active',
+        'quantity': quantity,
+        'totalPrice': totalPrice,
+        'createdAt': Timestamp.now(),
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking confirmed and saved')),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save booking: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -202,42 +255,14 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
                 const SizedBox(height: 30),
                 ElevatedButton(
-                    onPressed: () async {
-                        final user = FirebaseAuth.instance.currentUser;
-
-                        if (user == null) return;
-
-                        try {
-                        await FirebaseFirestore.instance.collection('bookings').add({
-                            'userId': user.uid,
-                            'eventTitle': widget.event.title,
-                            'date': widget.event.date,
-                            'location': widget.event.location,
-                            'ticketType': 'General Entry',
-                            'status': 'Active',
-                            'quantity': quantity,
-                            'totalPrice': totalPrice,
-                            'createdAt': Timestamp.now(),
-                        });
-
-                        if (!mounted) return;
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                            content: Text('Booking confirmed and saved'),
-                            ),
-                        );
-
-                        Navigator.pop(context);
-                        } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                            content: Text('Failed to save booking'),
-                            ),
-                        );
-                        }
-                    },
-                    child: const Text('Confirm Booking'),
+                  onPressed: _isLoading ? null : _confirmBooking,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Confirm Booking'),
                 ),
               ],
             ),

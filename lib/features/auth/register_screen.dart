@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/custom_text_field.dart';
@@ -45,9 +46,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text.trim(),
       );
 
-      await userCredential.user?.updateDisplayName(
-        _fullNameController.text.trim(),
-      );
+      final user = userCredential.user;
+
+      if (user != null) {
+        await user.updateDisplayName(_fullNameController.text.trim());
+
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'fullName': _fullNameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'phone': _phoneController.text.trim(),
+        }, SetOptions(merge: true));
+      }
 
       if (!mounted) return;
 
@@ -72,11 +81,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Something went wrong')),
+        SnackBar(content: Text('Something went wrong: $e')),
       );
     } finally {
       if (mounted) {
