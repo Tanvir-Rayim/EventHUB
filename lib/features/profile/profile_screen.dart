@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/profile_option_tile.dart';
 import '../tickets/my_bookings_screen.dart';
 import 'edit_profile_screen.dart';
+import 'privacy_security_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -158,7 +159,14 @@ class ProfileScreen extends StatelessWidget {
                 icon: Icons.security_outlined,
                 title: 'Privacy & Security',
                 subtitle: 'Control account safety and privacy',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacySecurityScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
               ElevatedButton(
