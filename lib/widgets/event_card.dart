@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../features/home/event_details_screen.dart';
-import '../features/events/edit_event_screen.dart'; // Import the edit screen
+import '../features/events/edit_event_screen.dart';
 import '../models/event_model.dart';
 
 class EventCard extends StatelessWidget {
   final EventModel event;
-  final VoidCallback? onEdit;  // Add onEdit callback (nullable)
+  final VoidCallback? onEdit;
 
   const EventCard({
     super.key,
     required this.event,
-    this.onEdit,  // Optional onEdit parameter
+    this.onEdit, 
   });
 
   @override
@@ -32,7 +32,7 @@ class EventCard extends StatelessWidget {
                   builder: (context) => EventDetailsScreen(event: event),
                 ),
               );
-            }, // If onEdit exists, go to Edit Event; else go to Details
+            },
 
       child: Container(
         width: double.infinity,
@@ -107,7 +107,6 @@ class EventCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            // Add the edit button for organizers
             if (onEdit != null)
               Align(
                 alignment: Alignment.centerRight,

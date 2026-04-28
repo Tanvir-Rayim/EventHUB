@@ -18,6 +18,7 @@ dependencies:
   firebase_storage: any
   cloud_firestore: any
   intl: ^0.20.2
+  flutter_launcher_icons: ^0.13.1
 
 dev_dependencies:
   flutter_test:
@@ -26,3 +27,12 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/EventHUB_logo.png  
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/EventHUB_logo.png"
+  adaptive_icon_background: "#0B0F1A" 
+  adaptive_icon_foreground: "assets/images/EventHUB_logo.png"

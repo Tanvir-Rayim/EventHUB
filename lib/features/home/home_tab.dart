@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/event_model.dart';
 import '../../widgets/event_card.dart';
 import '../home/create_event_screen.dart';
+import '../profile/notifications_screen.dart'; 
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -88,7 +89,6 @@ class _HomeTabState extends State<HomeTab> {
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // We now pass both the name and the role to the header
               _buildHeader(fullName, isOrganizer),
               _buildSearchBar(),
               _buildCategories(),
@@ -102,7 +102,6 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  // Updated to accept the role and format the text dynamically
   Widget _buildHeader(String name, bool isOrganizer) {
     final String greeting = isOrganizer ? '$name,' : 'Hello, $name 👋';
     final String subtitle = isOrganizer ? "Let's organise new events." : 'Find Amazing Events';
@@ -133,15 +132,56 @@ class _HomeTabState extends State<HomeTab> {
               ),
             ],
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF171A2A),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.notifications_none, color: Colors.white),
-              onPressed: () {},
-            ),
+          
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('notifications')
+                .where('receiverId', isEqualTo: currentUser?.uid)
+                .where('isRead', isEqualTo: false) 
+                .snapshots(),
+            builder: (context, snapshot) {
+              final bool hasUnread = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF171A2A),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.notifications_none, color: Colors.white),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NotificationsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  if (hasUnread)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF0B0F1A),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -309,7 +349,12 @@ class _HomeTabState extends State<HomeTab> {
                 event: event,
                 onEdit: isOrganizer 
                     ? () {
-                        // TODO: Navigate to Edit Event Screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreateEventScreen(event: event),
+                          ),
+                        );
                       } 
                     : null,
               ),

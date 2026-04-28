@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../models/event_model.dart';
 import 'booking_screen.dart';
@@ -11,11 +12,47 @@ class EventDetailsScreen extends StatelessWidget {
     required this.event,
   });
 
+  Future<void> _handleBooking(BuildContext context) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to book this event')),
+      );
+      return;
+    }
+
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingScreen(event: event),
+        ),
+      );
+
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'receiverId': event.organiser, 
+        'title': 'New Event Booking',
+        'body': 'Someone has just booked your event: ${event.title}',
+        'createdAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+        'senderName': currentUser.displayName ?? 'A user',
+        'type': 'booking',
+      });
+      
+    } catch (e) {
+      debugPrint('Error during booking notification: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Event Details'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Event Details', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Container(
         width: double.infinity,
@@ -41,40 +78,44 @@ class EventDetailsScreen extends StatelessWidget {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFFFF5C7A),
-                        Color(0xFF7C5CFF),
-                      ],
-                    ),
+                    image: event.imageUrl.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(event.imageUrl),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    gradient: event.imageUrl.isEmpty
+                        ? const LinearGradient(
+                            colors: [Color(0xFFFF5C7A), Color(0xFF7C5CFF)],
+                          )
+                        : null,
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.event,
-                      size: 70,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: event.imageUrl.isEmpty
+                      ? const Center(
+                          child: Icon(Icons.event, size: 70, color: Colors.white),
+                        )
+                      : null,
                 ),
                 const SizedBox(height: 24),
+                
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF5C7A),
-                    borderRadius: BorderRadius.circular(20),
+                    color: const Color(0xFFFF5C7A).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFF5C7A), width: 1),
                   ),
                   child: Text(
                     event.category,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFFF5C7A),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
+                
                 Text(
                   event.title,
                   style: const TextStyle(
@@ -84,6 +125,7 @@ class EventDetailsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
+                
                 _InfoTile(
                   icon: Icons.calendar_today_outlined,
                   title: 'Date & Time',
@@ -97,16 +139,11 @@ class EventDetailsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _InfoTile(
-                  icon: Icons.person_outline,
-                  title: 'Organiser',
-                  value: event.organiser,
-                ),
-                const SizedBox(height: 12),
-                _InfoTile(
                   icon: Icons.attach_money,
                   title: 'Price',
                   value: event.price,
                 ),
+                
                 const SizedBox(height: 28),
                 const Text(
                   'About Event',
@@ -125,20 +162,30 @@ class EventDetailsScreen extends StatelessWidget {
                     height: 1.6,
                   ),
                 ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                    onPressed: () {
-                        Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => BookingScreen(event: event),
-                        ),
-                        );
-                    },
-                    child: const Text('Book Now'),
-                ),
+                const SizedBox(height: 100),
               ],
             ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF12182A),
+          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+        ),
+        child: ElevatedButton(
+          onPressed: () => _handleBooking(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFFF5C7A),
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 56),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 0,
+          ),
+          child: const Text(
+            'Book Now',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -175,10 +222,7 @@ class _InfoTile extends StatelessWidget {
               color: const Color(0xFF111425),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: const Color(0xFFFF5C7A),
-            ),
+            child: Icon(icon, color: const Color(0xFFFF5C7A)),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -187,10 +231,7 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Color(0xFFB8B8C7),
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Color(0xFF8E93A8), fontSize: 12),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -198,7 +239,7 @@ class _InfoTile extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],

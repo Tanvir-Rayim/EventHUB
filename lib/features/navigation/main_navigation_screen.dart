@@ -53,7 +53,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         final role = userData['role'] ?? 'regular';
         final isOrganizer = role == 'organizer';
 
-        // Dynamically set screens based on role
         final List<Widget> screens = [
           const HomeTab(),
           isOrganizer
@@ -61,8 +60,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               : const TicketsScreen(),
           const ProfileScreen(),
         ];
-
-        // Failsafe in case _selectedIndex goes out of bounds when swapping roles
         final safeIndex = _selectedIndex >= screens.length ? 0 : _selectedIndex;
 
         return Scaffold(
@@ -96,7 +93,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 activeIcon: Icon(Icons.home),
                 label: 'Home',
               ),
-              // Dynamically change the middle icon/label based on role
               if (isOrganizer)
                 const BottomNavigationBarItem(
                   icon: Icon(Icons.history_outlined),
@@ -122,7 +118,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 }
 
-// --- New Tab Built Specifically for Organizers ---
 class PastEventsTab extends StatelessWidget {
   final String userId;
   const PastEventsTab({super.key, required this.userId});
@@ -148,7 +143,6 @@ class PastEventsTab extends StatelessWidget {
           );
         }
 
-        // Map Firebase data and roughly filter for "past" events
         final allEvents = snapshot.data!.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           return EventModel(
@@ -164,9 +158,6 @@ class PastEventsTab extends StatelessWidget {
           );
         }).toList();
 
-        // Note: Since your date is saved as a formatted String (e.g. '12 April 2026') 
-        // true date comparison requires parsing. For now, it displays the queried events.
-        // Once standard DateTime formats are saved in Firebase, we can strict-filter here.
         final pastEvents = allEvents; 
 
         return SingleChildScrollView(
@@ -194,7 +185,7 @@ class PastEventsTab extends StatelessWidget {
               for (var event in pastEvents) ...[
                 EventCard(
                   event: event,
-                  onEdit: null, // Read-only view for history
+                  onEdit: null, 
                 ),
                 const SizedBox(height: 14),
               ]

@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io'; // Make sure to import dart:io for File
+import 'dart:io'; 
 
 class EditEventScreen extends StatefulWidget {
   final String eventId;
@@ -57,7 +57,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
 
     if (pickedFile != null) {
       setState(() {
-        _eventImage = File(pickedFile.path); // Convert XFile to File
+        _eventImage = File(pickedFile.path); 
       });
     }
   }
@@ -70,7 +70,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
     });
 
     try {
-      // Upload event image to Firebase Storage
       String imageUrl = '';
       if (_eventImage != null) {
         final ref = FirebaseStorage.instance
@@ -78,12 +77,11 @@ class _EditEventScreenState extends State<EditEventScreen> {
             .child('event_images')
             .child(DateTime.now().toString());
         await ref.putFile(
-          _eventImage!,   // Corrected for Firebase Storage
+          _eventImage!,   
         );
         imageUrl = await ref.getDownloadURL();
       }
 
-      // Save event data to Firestore
       final user = FirebaseAuth.instance.currentUser;
       await FirebaseFirestore.instance.collection('events').doc(widget.eventId).update({
         'title': _titleController.text.trim(),

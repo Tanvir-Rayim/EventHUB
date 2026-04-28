@@ -3,10 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/profile_option_tile.dart';
 import '../tickets/my_bookings_screen.dart';
-import '../navigation/main_navigation_screen.dart'; // Added to access PastEventsTab
+import '../navigation/main_navigation_screen.dart';
 import 'edit_profile_screen.dart';
 import 'privacy_security_screen.dart';
-import 'notifications_screen.dart'; // <-- Added import for Notifications Screen
+import 'notifications_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -46,8 +46,6 @@ class ProfileScreen extends StatelessWidget {
           displayName = data['fullName'] ?? displayName;
           email = data['email'] ?? email;
           phone = data['phone'] ?? phone;
-          
-          // Check if the user is an organizer
           isOrganizer = data['role'] == 'organizer';
         }
 
@@ -142,15 +140,13 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
               ),
-              
-              // --- DYNAMIC ROLE RENDER ---
+
               isOrganizer
                   ? ProfileOptionTile(
                       icon: Icons.event_note_outlined,
                       title: 'My Events',
                       subtitle: 'Manage the events you have created',
                       onTap: () {
-                        // Navigate to the PastEventsTab wrapped in a Scaffold
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -180,9 +176,6 @@ class ProfileScreen extends StatelessWidget {
                         );
                       },
                     ),
-              // ---------------------------
-              
-              // --- UPDATED NOTIFICATIONS TILE ---
               ProfileOptionTile(
                 icon: Icons.notifications_none,
                 title: 'Notifications',
@@ -196,7 +189,6 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
               ),
-              // ----------------------------------
               
               ProfileOptionTile(
                 icon: Icons.security_outlined,

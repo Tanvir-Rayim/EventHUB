@@ -44,9 +44,6 @@ class _LoginScreenState extends State<LoginScreen> {
         const SnackBar(content: Text('Login successful')),
       );
 
-      // No manual navigation here.
-      // AuthWrapper will detect the auth state change
-      // and automatically open MainNavigationScreen.
     } on FirebaseAuthException catch (e) {
       String message = 'Login failed';
 

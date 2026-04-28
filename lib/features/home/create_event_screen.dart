@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 
-// Import the notification service
 import '../../services/notification_service.dart';
 
 class CreateEventScreen extends StatefulWidget {
@@ -22,17 +21,33 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _locationController = TextEditingController();
   final _priceController = TextEditingController();
   final _dateController = TextEditingController();
+  
   String? _selectedCategory;
   File? _eventImage;
-
   bool _isLoading = false;
 
-  final _categories = ['Music', 'Party', 'Food', 'Sports', 'Business'];
+  final List<String> _categories = [
+    'Music',
+    'Tech',
+    'Sports',
+    'Arts',
+    'Food',
+    'Business'
+  ];
 
-  // Pick event image from gallery
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _locationController.dispose();
+    _priceController.dispose();
+    _dateController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
 
     if (pickedFile != null) {
       setState(() {
@@ -41,7 +56,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
-  // Handle event creation
   Future<void> _createEvent() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -50,20 +64,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     });
 
     try {
-      // Upload the event image to Firebase Storage
-      String imageUrl = '';
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in");
+
+      String imageUrl = 'https://via.placeholder.com/150';
       if (_eventImage != null) {
         final ref = FirebaseStorage.instance
             .ref()
             .child('event_images')
-            .child(DateTime.now().toString());
+            .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
         await ref.putFile(_eventImage!);  
         imageUrl = await ref.getDownloadURL();
       }
 
-      final user = FirebaseAuth.instance.currentUser;
-
-      // Save event data to Firestore
       await FirebaseFirestore.instance.collection('events').add({
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
@@ -71,42 +84,35 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         'price': _priceController.text.trim(),
         'date': _dateController.text.trim(),
         'category': _selectedCategory,
-        'imageUrl': imageUrl.isNotEmpty ? imageUrl : 'https://via.placeholder.com/150',
-        'organizer': user?.uid ?? 'Unknown', 
-        'createdAt': Timestamp.now(),
+        'imageUrl': imageUrl,
+        'organizer': user.uid, 
+        'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // --- SEND NOTIFICATION TO ALL USERS ---
-      // 1. Get the Organizer's name safely
-      String organizerName = user?.displayName ?? 'An Organizer';
+      String organizerName = 'An Organizer';
       try {
-        if (user != null) {
-          final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-          if (userDoc.exists && userDoc.data()!.containsKey('fullName')) {
-            organizerName = userDoc.data()!['fullName'];
-          }
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          organizerName = userDoc.data()?['fullName'] ?? user.displayName ?? 'An Organizer';
         }
       } catch (e) {
-        debugPrint('Failed to fetch organizer name for notification: $e');
+        debugPrint('Failed to fetch organizer name: $e');
       }
 
-      // 2. Trigger the notification batch
       await NotificationService.notifyAllUsersAboutNewEvent(
         eventTitle: _titleController.text.trim(),
         organizerName: organizerName,
       );
-      // --------------------------------------
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Event created successfully')),
+        const SnackBar(content: Text('Event created successfully!')),
       );
 
       Navigator.pop(context); 
     } catch (e) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to create event: $e')),
       );
@@ -119,187 +125,147 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+  InputDecoration _buildInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Color(0xFF8E93A8)),
+      prefixIcon: Icon(icon, color: const Color(0xFFFF5C7A)),
+      filled: true,
+      fillColor: const Color(0xFF171A2A),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFFF5C7A), width: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0B0F1A),
       appBar: AppBar(
-        title: const Text('Create Event'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('Create New Event', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF0B0F1A),
-              Color(0xFF12182A),
-              Color(0xFF0B0F1A),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: _formKey,
-              child: Column(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF171A2A),
+                    borderRadius: BorderRadius.circular(16),
+                    image: _eventImage != null 
+                      ? DecorationImage(image: FileImage(_eventImage!), fit: BoxFit.cover)
+                      : null,
+                  ),
+                  child: _eventImage == null 
+                    ? const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_a_photo_outlined, color: Colors.white, size: 40),
+                          SizedBox(height: 8),
+                          Text('Add Event Banner', style: TextStyle(color: Colors.white54)),
+                        ],
+                      )
+                    : null,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              TextFormField(
+                controller: _titleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: _buildInputDecoration('Event Title', Icons.title),
+                validator: (val) => val!.isEmpty ? 'Title is required' : null,
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                dropdownColor: const Color(0xFF171A2A),
+                style: const TextStyle(color: Colors.white),
+                decoration: _buildInputDecoration('Category', Icons.category),
+                items: _categories.map((cat) => DropdownMenuItem(
+                  value: cat, 
+                  child: Text(cat, style: const TextStyle(color: Colors.white))
+                )).toList(),
+                onChanged: (val) => setState(() => _selectedCategory = val),
+                validator: (val) => val == null ? 'Select a category' : null,
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _locationController,
+                style: const TextStyle(color: Colors.white),
+                decoration: _buildInputDecoration('Location', Icons.location_on),
+                validator: (val) => val!.isEmpty ? 'Location is required' : null,
+              ),
+              const SizedBox(height: 16),
+
+              Row(
                 children: [
-                  // Event Title
-                  TextFormField(
-                    controller: _titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'Event Title',
-                      labelStyle: TextStyle(color: Colors.white),
-                      hintText: 'Enter event title',
-                      hintStyle: TextStyle(color: Color(0xFFB8B8C7)),
-                      prefixIcon: Icon(Icons.event, color: Colors.white),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an event title';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Event Description
-                  TextFormField(
-                    controller: _descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Event Description',
-                      labelStyle: TextStyle(color: Colors.white),
-                      hintText: 'Enter event description',
-                      hintStyle: TextStyle(color: Color(0xFFB8B8C7)),
-                      prefixIcon: Icon(Icons.description, color: Colors.white),
-                    ),
-                    maxLines: 4,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an event description';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Event Location
-                  TextFormField(
-                    controller: _locationController,
-                    decoration: const InputDecoration(
-                      labelText: 'Location',
-                      labelStyle: TextStyle(color: Colors.white),
-                      hintText: 'Enter event location',
-                      hintStyle: TextStyle(color: Color(0xFFB8B8C7)),
-                      prefixIcon: Icon(Icons.location_on, color: Colors.white),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an event location';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Event Price
-                  TextFormField(
-                    controller: _priceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Price',
-                      labelStyle: TextStyle(color: Colors.white),
-                      hintText: 'Enter event price',
-                      hintStyle: TextStyle(color: Color(0xFFB8B8C7)),
-                      prefixIcon: Icon(Icons.attach_money, color: Colors.white),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter event price';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Event Date & Time
-                  TextFormField(
-                    controller: _dateController,
-                    decoration: const InputDecoration(
-                      labelText: 'Event Date & Time',
-                      labelStyle: TextStyle(color: Colors.white),
-                      hintText: 'Enter event date & time',
-                      hintStyle: TextStyle(color: Color(0xFFB8B8C7)),
-                      prefixIcon: Icon(Icons.date_range, color: Colors.white),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter event date & time';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Event Category Dropdown
-                  DropdownButtonFormField<String>(
-                    value: _selectedCategory,
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedCategory = newValue;
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      labelText: 'Event Category',
-                      labelStyle: TextStyle(color: Colors.white),
-                      hintStyle: TextStyle(color: Color(0xFFB8B8C7)),
-                      prefixIcon: Icon(Icons.category, color: Colors.white),
-                    ),
-                    items: _categories.map((category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(
-                          category,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      );
-                    }).toList(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select an event category';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Pick Event Image
-                  ElevatedButton(
-                    onPressed: _pickImage,
-                    child: Text(
-                      _eventImage == null
-                          ? 'Pick an Event Banner'
-                          : 'Change Event Banner',
+                  Expanded(
+                    child: TextFormField(
+                      controller: _dateController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _buildInputDecoration('Date/Time', Icons.calendar_today),
+                      validator: (val) => val!.isEmpty ? 'Required' : null,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // Display the selected event image
-                  _eventImage == null
-                      ? const SizedBox()
-                      : Image.file(
-                          File(_eventImage!.path),
-                          height: 150,
-                        ),
-                  const SizedBox(height: 24),
-                  // Create Event Button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _createEvent,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Create Event'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _priceController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _buildInputDecoration('Price', Icons.attach_money),
+                      keyboardType: TextInputType.number,
+                      validator: (val) => val!.isEmpty ? 'Required' : null,
+                    ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _descriptionController,
+                style: const TextStyle(color: Colors.white),
+                maxLines: 4,
+                decoration: _buildInputDecoration('Description', Icons.notes),
+                validator: (val) => val!.isEmpty ? 'Description is required' : null,
+              ),
+              const SizedBox(height: 30),
+
+              ElevatedButton(
+                onPressed: _isLoading ? null : _createEvent,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF5C7A),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: _isLoading
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Publish Event', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),

@@ -32,13 +32,13 @@ class EventModel {
       date: data['date'] ?? '',
       location: data['location'] ?? '',
       price: data['price'] ?? '',
-      organiser: data['organiser'] ?? '', // Note: Fixed 'organizer' to match your variable name
+      organiser: data['organiser'] ?? '', 
       description: data['description'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
     );
   }
 
-  // ADDED THIS: To easily save data TO Firestore
+
   Map<String, dynamic> toMap() {
     return {
       'title': title,
@@ -48,8 +48,7 @@ class EventModel {
       'price': price,
       'organiser': organiser,
       'description': description,
-      'imageUrl': imageUrl,
-      // We don't save the 'id' here because Firestore uses it as the Document ID itself
+      'imageUrl': imageUrl
     };
   }
 }

@@ -20,7 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
-  String? _role = 'regular';  // Default role is regular
+  String? _role = 'regular';  
 
   bool _isLoading = false;
 
@@ -57,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'fullName': _fullNameController.text.trim(),
           'email': _emailController.text.trim(),
           'phone': _phoneController.text.trim(),
-          'role': _role,  // Store the role here
+          'role': _role,  
         }, SetOptions(merge: true));
       }
 
@@ -204,7 +204,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: _confirmPasswordValidator,
                   ),
                   const SizedBox(height: 16),
-                  // Role selection dropdown
+
                   DropdownButtonFormField<String>(
                     value: _role,
                     onChanged: (newValue) {
