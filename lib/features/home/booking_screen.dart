@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../models/event_model.dart';
+// 1. Added Notification Service Import
+import '../../services/notification_service.dart';
 
 class BookingScreen extends StatefulWidget {
   final EventModel event;
@@ -42,6 +44,7 @@ class _BookingScreenState extends State<BookingScreen> {
     });
 
     try {
+      // 1. Save the booking to Firestore
       await FirebaseFirestore.instance.collection('bookings').add({
         'userId': user.uid,
         'eventTitle': widget.event.title,
@@ -53,6 +56,31 @@ class _BookingScreenState extends State<BookingScreen> {
         'totalPrice': totalPrice,
         'createdAt': Timestamp.now(),
       });
+
+      // --- 2. TRIGGER NOTIFICATION TO ORGANIZER ---
+      try {
+        // Fetch current user's name for the notification
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        
+        String userName = "A user";
+        if (userDoc.exists) {
+          userName = userDoc.data()?['fullName'] ?? user.displayName ?? "A user";
+        }
+
+        // Send the notification via our service
+        await NotificationService.notifyOrganizerAboutBooking(
+          organizerId: widget.event.organiser, // Ensure this is the Organizer's User ID
+          eventTitle: widget.event.title,
+          userName: userName,
+        );
+      } catch (e) {
+        debugPrint("Notification failed but booking was saved: $e");
+        // We don't stop the user if just the notification fails
+      }
+      // --------------------------------------------
 
       if (!mounted) return;
 

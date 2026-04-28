@@ -20,6 +20,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
+  String? _role = 'regular';  // Default role is regular
+
   bool _isLoading = false;
 
   @override
@@ -55,6 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'fullName': _fullNameController.text.trim(),
           'email': _emailController.text.trim(),
           'phone': _phoneController.text.trim(),
+          'role': _role,  // Store the role here
         }, SetOptions(merge: true));
       }
 
@@ -199,6 +202,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     prefixIcon: Icons.lock_outline,
                     obscureText: true,
                     validator: _confirmPasswordValidator,
+                  ),
+                  const SizedBox(height: 16),
+                  // Role selection dropdown
+                  DropdownButtonFormField<String>(
+                    value: _role,
+                    onChanged: (newValue) {
+                      setState(() {
+                        _role = newValue;
+                      });
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Select Role',
+                      labelStyle: TextStyle(color: Colors.white),
+                      hintStyle: TextStyle(color: Color(0xFFB8B8C7)),
+                      prefixIcon: Icon(Icons.group, color: Colors.white),
+                    ),
+                    items: const [
+                      DropdownMenuItem<String>(
+                        value: 'regular',
+                        child: Text(
+                          'Regular User',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      DropdownMenuItem<String>(
+                        value: 'organizer',
+                        child: Text(
+                          'Organizer',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a role';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(

@@ -3,8 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/profile_option_tile.dart';
 import '../tickets/my_bookings_screen.dart';
+import '../navigation/main_navigation_screen.dart'; // Added to access PastEventsTab
 import 'edit_profile_screen.dart';
 import 'privacy_security_screen.dart';
+import 'notifications_screen.dart'; // <-- Added import for Notifications Screen
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -37,12 +39,16 @@ class ProfileScreen extends StatelessWidget {
             : 'EventHUB User';
         String email = user.email ?? 'No email available';
         String phone = 'No phone number';
+        bool isOrganizer = false;
 
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>;
           displayName = data['fullName'] ?? displayName;
           email = data['email'] ?? email;
           phone = data['phone'] ?? phone;
+          
+          // Check if the user is an organizer
+          isOrganizer = data['role'] == 'organizer';
         }
 
         return SingleChildScrollView(
@@ -136,25 +142,62 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
               ),
-              ProfileOptionTile(
-                icon: Icons.confirmation_number_outlined,
-                title: 'My Bookings',
-                subtitle: 'View your ticket and booking history',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MyBookingsScreen(),
+              
+              // --- DYNAMIC ROLE RENDER ---
+              isOrganizer
+                  ? ProfileOptionTile(
+                      icon: Icons.event_note_outlined,
+                      title: 'My Events',
+                      subtitle: 'Manage the events you have created',
+                      onTap: () {
+                        // Navigate to the PastEventsTab wrapped in a Scaffold
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Scaffold(
+                              backgroundColor: const Color(0xFF0B0F1A),
+                              appBar: AppBar(
+                                backgroundColor: Colors.transparent,
+                                elevation: 0,
+                                iconTheme: const IconThemeData(color: Colors.white),
+                              ),
+                              body: PastEventsTab(userId: user.uid),
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : ProfileOptionTile(
+                      icon: Icons.confirmation_number_outlined,
+                      title: 'My Bookings',
+                      subtitle: 'View your ticket and booking history',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MyBookingsScreen(),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
+              // ---------------------------
+              
+              // --- UPDATED NOTIFICATIONS TILE ---
               ProfileOptionTile(
                 icon: Icons.notifications_none,
                 title: 'Notifications',
                 subtitle: 'Manage your notification preferences',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsScreen(),
+                    ),
+                  );
+                },
               ),
+              // ----------------------------------
+              
               ProfileOptionTile(
                 icon: Icons.security_outlined,
                 title: 'Privacy & Security',

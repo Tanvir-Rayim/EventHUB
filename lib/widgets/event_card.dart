@@ -1,26 +1,39 @@
 import 'package:flutter/material.dart';
 import '../features/home/event_details_screen.dart';
+import '../features/events/edit_event_screen.dart'; // Import the edit screen
 import '../models/event_model.dart';
 
 class EventCard extends StatelessWidget {
   final EventModel event;
+  final VoidCallback? onEdit;  // Add onEdit callback (nullable)
 
   const EventCard({
     super.key,
     required this.event,
+    this.onEdit,  // Optional onEdit parameter
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EventDetailsScreen(event: event),
-          ),
-        );
-      },
+      onTap: onEdit != null
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditEventScreen(eventId: event.id),
+                ),
+              );
+            }
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EventDetailsScreen(event: event),
+                ),
+              );
+            }, // If onEdit exists, go to Edit Event; else go to Details
+
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 16),
@@ -94,6 +107,18 @@ class EventCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
+            // Add the edit button for organizers
+            if (onEdit != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.edit,
+                    color: Colors.white,
+                  ),
+                  onPressed: onEdit,
+                ),
+              ),
           ],
         ),
       ),

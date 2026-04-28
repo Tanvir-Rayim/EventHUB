@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../models/event_model.dart';
 import 'booking_screen.dart';
+
 class EventDetailsScreen extends StatelessWidget {
   final EventModel event;
 
